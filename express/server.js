@@ -1,22 +1,34 @@
 'use strict';
 const express = require('express');
 const path = require('path');
+const exec = require('child_process').exec;
 const serverless = require('serverless-http');
 const app = express();
 const bodyParser = require('body-parser');
 
+const callback = () => {};
+
 const router = express.Router();
 router.get('/', (req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/html' });
-  res.write('<h1>Hello from Express.js!</h1>');
-  res.end();
+  const child = exec(`curl https://tntsfeqzp4a.sandbox.verygoodproxy.com/post \
+  -H "Content-type: application/json" \
+  -d '{"account_number": "ACC00000000000000000"}'`, (error, result) => {
+    // Resolve with result of process
+    console.log(result);
+    console.log(error);
+    if (error) {
+      res.send(error);
+    } else {
+      res.send(JSON.stringify(result, null, 2));
+    }
+  });
 });
-router.get('/another', (req, res) => res.json({ route: req.originalUrl }));
-router.post('/', (req, res) => res.json({ postBody: req.body }));
 
 app.use(bodyParser.json());
 app.use('/.netlify/functions/server', router);  // path must route to lambda
-app.use('/', (req, res) => res.sendFile(path.join(__dirname, '../index.html')));
+app.get('/', (req, res) => {
+  res.redirect('/.netlify/functions/server');
+})
 
 module.exports = app;
 module.exports.handler = serverless(app);
